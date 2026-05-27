@@ -1,59 +1,47 @@
 # LaunchBridge
 
-A post-graduation transition dashboard built for graduating international students navigating visa deadlines, job applications, relocation, and life after college — all in one calm, organized place.
+A post-graduation transition dashboard built for Nico Fertonani — an international student from Argentina navigating visa deadlines, job applications, housing, and the full complexity of life after college, all in one place.
+
+**Live app:** [benchouikhafiras059-maker.github.io/launchbridge](https://benchouikhafiras059-maker.github.io/launchbridge/)
 
 ---
 
-## Design Argument
+## Project Documentation
 
-Most tools for recent graduates are either too generic (to-do apps, spreadsheets) or too narrow (only job trackers, only visa checklists). International students face a uniquely layered transition: they must manage time-sensitive immigration deadlines, a high-stakes job search, relocation planning, and personal adjustment — simultaneously, and with consequences for missing any single step.
-
-LaunchBridge is designed around one principle: **the user does not need more information, they need clarity**. The app does not give advice — it surfaces what already exists (the user's tasks, documents, applications) in a structure that makes priorities obvious and progress visible.
-
-The design uses calm colors, generous spacing, and a hierarchical card layout to reduce cognitive load. The right-side Assistant Panel uses rule-based logic to surface the top 3 things to act on, so the user never has to decide where to start from a blank page.
-
----
-
-## Platform Rationale
-
-**React + Vite + Tailwind CSS**: React's component model maps cleanly to the modular sections of this dashboard (each page is a discrete component that shares centralized state). Vite provides fast local development with no configuration overhead. Tailwind CSS enables rapid, consistent styling without writing custom CSS for every element.
-
-**localStorage (no backend)**: For a single-user tool used during a 3–6 month life transition, local persistence is sufficient and eliminates the friction of accounts or servers. All data is private by default and persists across browser sessions.
-
-**No AI API**: The Focus Assistant uses deterministic sorting logic (overdue → soonest deadline → highest priority) rather than an LLM API. This keeps the app free to run, fast, and reliable — and is sufficient for the core use case.
-
----
-
-## How the App Helps the User
-
-The primary user is a graduating international student preparing for the post-college transition. Their specific challenges:
-
-| Problem | LaunchBridge Solution |
+| Document | Description |
 |---|---|
-| Important deadlines spread across email, notes, school portals | Timeline with all tasks in one view, filterable by category |
-| Uncertainty about which task to prioritize | Focus Assistant panel surfaces top 3 priorities with reason |
-| No clear view of immigration document status | Documents tracker with simple 3-state status system |
-| Job applications tracked in a spreadsheet or memory | Job Tracker with full pipeline from Saved → Offer |
-| Forgetting what happened in interviews or advisor meetings | Notes section with timestamped, searchable records |
-| No sense of overall progress | Transition Readiness Score (0–100) combining task, doc, and job progress |
+| [Design Argument](docs/design-argument.md) | Who Nico is, what's broken for him, what "helped" looks like, and why this tool exists |
+| [Research Documentation](docs/research.md) | Interview notes, quotes, observed pain points, and environment context |
+| [Platform Rationale](docs/platform-rationale.md) | Why a React web app — and why not a mobile app, extension, or native build |
+| [User Testing Evidence](docs/user-testing.md) | What happened when Nico used the prototype — what he reached for, what he ignored, what surprised him |
+| [System Architecture](docs/architecture.md) | Full Mermaid diagram — inputs, state, computed logic, and outputs |
+| [AI Direction Log](docs/ai-direction-log.md) | 7 entries — what I asked AI to do, what it produced, what I kept and changed |
+| [Records of Resistance](docs/records-of-resistance.md) | 3 documented moments of rejecting or significantly revising AI output |
+| [Five Questions Reflection](docs/five-questions.md) | Design cycle reflection — who, what, research, AI, and what I'd do differently |
+| [Post-Mortem](docs/post-mortem.md) | What worked, what failed, and what designing for a real person taught me |
 
 ---
 
-## What to Test with the Real Person
+## The Problem
 
-This is a research tool as much as a product. When testing with a real graduating international student, focus on:
+Nico said it directly:
 
-1. **Does the Readiness Score feel accurate?** Ask: "Does this score reflect how prepared you actually feel?" If not, which category is wrong?
+> "The hardest part is that everything is connected, but it's not in one place. I have to think about jobs, visa deadlines, documents, money, and where I'm going to live, but I don't always know what to prioritize first."
 
-2. **Does the Focus Assistant surface the right priorities?** Ask: "Are these the three things you'd actually focus on today?" Observe whether they agree or immediately identify a different priority.
+LaunchBridge is built around that sentence. One place. Connected. Prioritized.
 
-3. **Is the task list complete for their situation?** The sample data covers common tasks, but every student has a unique trajectory. What's missing?
+---
 
-4. **Does the Document tracker match their actual document needs?** International students from different countries and in different visa situations may have different critical documents.
+## What It Does
 
-5. **Do they use the Notes section?** Does it feel valuable or redundant given how they already take notes?
-
-6. **What causes anxiety that the app doesn't address?** Open-ended question — the app may be solving the wrong problem for this specific user.
+| Problem | Solution |
+|---|---|
+| Deadlines scattered across email, portals, and notes | Timeline with all tasks in one view, sorted by urgency |
+| Uncertainty about what to do first | Focus Assistant surfaces top 3 priorities by deadline and urgency |
+| OPT application window easy to miss | OPT Countdown banner — days until deadline, live on the dashboard |
+| Document status tracked in memory | Documents tracker with clear status per item |
+| Job applications tracked informally | Job Tracker with full pipeline and interview log |
+| No sense of overall progress | Transition Readiness Score (0–100) across tasks, documents, and applications |
 
 ---
 
@@ -64,9 +52,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
-
-All data is stored in the browser's localStorage under the prefix `lb_`. To reset to sample data, clear localStorage in DevTools → Application → Local Storage.
+Open `http://localhost:5173`. All data lives in localStorage under the `lb_` prefix. To reset to sample data, clear localStorage in DevTools → Application → Local Storage.
 
 ---
 
@@ -75,22 +61,37 @@ All data is stored in the browser's localStorage under the prefix `lb_`. To rese
 ```
 src/
 ├── components/
-│   ├── Sidebar.jsx        # Left navigation
-│   ├── Dashboard.jsx      # Overview + readiness score
-│   ├── Timeline.jsx       # Task list with filtering
-│   ├── Documents.jsx      # Document status tracker
-│   ├── JobTracker.jsx     # Job application pipeline
-│   ├── Notes.jsx          # Freeform notes
-│   ├── AssistantPanel.jsx # Rule-based focus suggestions
-│   └── Modal.jsx          # Shared modal overlay
+│   ├── Sidebar.jsx          # Navigation
+│   ├── Dashboard.jsx        # Readiness score · OPT countdown · urgent tasks
+│   ├── Timeline.jsx         # All tasks sorted by deadline
+│   ├── Documents.jsx        # Document status tracker
+│   ├── JobTracker.jsx       # Application pipeline + interview log
+│   ├── VisaTracker.jsx      # OPT step-by-step checklist
+│   ├── BudgetPlanner.jsx    # Income vs. expenses
+│   ├── HousingFinder.jsx    # Apartment options and status
+│   ├── NetworkContacts.jsx  # Contacts + follow-up tracking
+│   ├── Notes.jsx            # Freeform notes
+│   ├── AssistantPanel.jsx   # Rule-based focus panel (no LLM)
+│   ├── Onboarding.jsx       # First-run profile setup
+│   └── Modal.jsx            # Shared modal overlay
 ├── data/
-│   └── sampleData.js      # Pre-populated sample content
+│   └── sampleData.js        # Pre-populated realistic sample content
 ├── hooks/
-│   └── useLocalStorage.js # Persistent state hook
+│   └── useLocalStorage.js   # Persistent state hook
 └── utils/
-    └── helpers.js         # Scoring, formatting, config maps
+    └── helpers.js           # Scoring, priority logic, formatting
+docs/
+├── design-argument.md
+├── research.md
+├── platform-rationale.md
+├── user-testing.md
+├── architecture.md
+├── ai-direction-log.md
+├── records-of-resistance.md
+├── five-questions.md
+└── post-mortem.md
 ```
 
 ---
 
-*Built for SCAD AI 201 — Persons Required. Spring 2026.*
+*Built for SCAD AI 201 — Persons Required. Spring 2026. Designed for Nico Fertonani.*
