@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LaunchBridge — Vision</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --indigo: #4f46e5;
+    --indigo-light: #e0e7ff;
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --slate-900: #0f172a;
+    --slate-700: #334155;
+    --slate-500: #64748b;
+    --slate-400: #94a3b8;
+    --slate-300: #cbd5e1;
+    --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9;
+    --slate-50: #f8fafc;
+    --white: #ffffff;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0f;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Slideshow wrapper ── */
+  #stage {
+    position: relative;
+    width: 960px;
+    height: 600px;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: scale(0.97) translateY(12px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: all;
+  }
+  .slide.out {
+    opacity: 0;
+    transform: scale(1.02) translateY(-12px);
+  }
+
+  /* ── Chrome frame ── */
+  .chrome {
+    width: 100%;
+    height: 100%;
+    background: var(--slate-50);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    background: var(--white);
+    border-right: 1px solid var(--slate-200);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .sb-logo {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--slate-100);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sb-logo-icon {
+    width: 28px; height: 28px;
+    background: var(--indigo);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 11px; font-weight: 700;
+  }
+  .sb-logo-text { font-size: 13px; font-weight: 700; color: var(--slate-900); }
+  .sb-logo-sub { font-size: 9px; color: var(--slate-400); margin-top: 1px; }
+
+  .sb-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .sb-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 8px;
+    font-size: 12px; font-weight: 500; color: var(--slate-500);
+    cursor: default;
+  }
+  .sb-item.active { background: var(--indigo-light); color: var(--indigo); font-weight: 600; }
+  .sb-item .dot { width: 14px; height: 14px; border-radius: 4px; background: currentColor; opacity: 0.3; flex-shrink: 0; }
+  .sb-item.active .dot { opacity: 1; }
+  .sb-badge {
+    margin-left: auto;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    background: var(--red); color: white;
+    font-size: 9px; font-weight: 700;
+    border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sb-profile {
+    border-top: 1px solid var(--slate-100);
+    padding: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sb-avatar {
+    width: 28px; height: 28px;
+    background: var(--indigo); border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+  .sb-name { font-size: 11px; font-weight: 600; color: var(--slate-800); }
+  .sb-uni { font-size: 9px; color: var(--slate-400); }
+
+  /* ── Main content ── */
+  .main { flex: 1; overflow: hidden; padding: 28px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ── Utility ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--slate-100);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .tag {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 600;
+  }
+  .row { display: flex; align-items: center; }
+  .col { display: flex; flex-direction: column; }
+  .gap4 { gap: 4px; } .gap8 { gap: 8px; } .gap12 { gap: 12px; } .gap16 { gap: 16px; }
+  .label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--slate-400); }
+  .h1 { font-size: 20px; font-weight: 800; color: var(--slate-900); }
+  .h2 { font-size: 13px; font-weight: 700; color: var(--slate-900); }
+  .body { font-size: 11px; color: var(--slate-500); }
+  .flex1 { flex: 1; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* ── Progress bar ── */
+  .pbar-bg { height: 6px; background: var(--slate-100); border-radius: 999px; overflow: hidden; }
+  .pbar-fill { height: 100%; border-radius: 999px; }
+
+  /* ── Bottom controls ── */
+  #controls {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 18px;
+  }
+  .dot-btn {
+    width: 8px; height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.2);
+    border: none; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .dot-btn.active { background: white; width: 22px; }
+  #progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 3px;
+    background: var(--indigo);
+    border-radius: 0 2px 2px 0;
+    transition: width linear;
+  }
+  #timer-label {
+    font-size: 11px; color: rgba(255,255,255,0.35);
+    margin-left: 6px;
+  }
+  #play-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7);
+    font-size: 11px; font-weight: 500;
+    padding: 5px 12px; border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #play-btn:hover { background: rgba(255,255,255,0.14); }
+
+  /* ── Callout badge ── */
+  .callout {
+    position: absolute;
+    background: var(--slate-900);
+    color: white;
+    font-size: 10px; font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: popIn 0.4s ease both;
+    z-index: 10;
+  }
+  .callout::before {
+    content: '';
+    position: absolute;
+    width: 6px; height: 6px;
+    background: var(--slate-900);
+    bottom: -3px; left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.8) translateY(4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* ── Slide 0: Hero ── */
+  #s0 { display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; border-radius: 0; box-shadow: none; }
+  #s0 .hero-logo { width: 72px; height: 72px; background: var(--indigo); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: white; margin-bottom: 20px; box-shadow: 0 0 40px rgba(79,70,229,0.5); }
+  #s0 h1 { font-size: 42px; font-weight: 900; color: white; text-align: center; letter-spacing: -0.03em; }
+  #s0 h1 span { color: var(--indigo); background: linear-gradient(135deg, #818cf8, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  #s0 p { font-size: 15px; color: rgba(255,255,255,0.5); text-align: center; margin-top: 10px; max-width: 360px; line-height: 1.6; }
+  #s0 .hero-tags { display: flex; gap: 8px; margin-top: 22px; }
+  #s0 .hero-tag { padding: 5px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 500; }
+
+  /* ── Slide anim helpers ── */
+  .fade-up { animation: fadeUp 0.5s ease both; }
+  .fade-up:nth-child(2) { animation-delay: 0.1s; }
+  .fade-up:nth-child(3) { animation-delay: 0.2s; }
+  .fade-up:nth-child(4) { animation-delay: 0.3s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <!-- ─── SLIDE 0: Hero ─── -->
+  <div class="slide active" id="s0">
+    <div class="hero-logo">LB</div>
+    <h1 class="fade-up">Launch<span>Bridge</span></h1>
+    <p class="fade-up">Your post-graduation transition hub — built for international students navigating life in the US.</p>
+    <div class="hero-tags fade-up">
+      <div class="hero-tag">Visa & OPT</div>
+      <div class="hero-tag">Job Tracker</div>
+      <div class="hero-tag">Budget</div>
+      <div class="hero-tag">Housing</div>
+      <div class="hero-tag">Network</div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 1: Dashboard ─── -->
+  <div class="slide" id="s1">
+    <div class="chrome">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sb-logo">
+          <div class="sb-logo-icon">LB</div>
+          <div><div class="sb-logo-text">LaunchBridge</div><div class="sb-logo-sub">Post-Grad Transition</div></div>
+        </div>
+        <div class="sb-nav">
+          <div class="sb-item active"><div class="dot"></div> Dashboard</div>
+          <div class="sb-item"><div class="dot"></div> Calendar</div>
+          <div class="sb-item"><div class="dot"></div> Timeline <span class="sb-badge">2</span></div>
+          <div class="sb-item"><div class="dot"></div> Documents <span class="sb-badge">1</span></div>
+          <div class="sb-item"><div class="dot"></div> Job Tracker <span class="sb-badge">3</span></div>
+          <div class="sb-item"><div class="dot"></div> Visa & OPT</div>
+          <div class="sb-item"><div class="dot"></div> Budget</div>
+          <div class="sb-item"><div class="dot"></div> Housing</div>
+          <div class="sb-item"><div class="dot"></div> Network</div>
+          <div class="sb-item"><div class="dot"></div> Notes</div>
+        </div>
+        <div class="sb-profile">
+          <div class="sb-avatar">FB</div>
+          <div><div class="sb-name">Firas</div><div class="sb-uni">SCAD</div></div>
+        </div>
+      </div>
+      <!-- Main -->
+      <div class="main">
+        <div class="col gap4">
+          <div class="h1" style="font-size:17px">Good morning, Firas.</div>
+          <div class="body">Here's your post-graduation transition overview.</div>
+        </div>
+        <!-- OPT Banner -->
+        <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:14px;">
+          <div style="font-size:26px;font-weight:900;color:var(--indigo)">24</div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#3730a3">24 days to apply for OPT</div>
+            <div style="font-size:10px;color:#6366f1;margin-top:2px">OPT application window — apply at least 90 days before graduation</div>
+          </div>
+        </div>
+        <!-- Stats row -->
+        <div class="grid3" style="gap:10px">
+          <!-- Readiness -->
+          <div class="card" style="padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px">
+            <div class="label">Readiness Score</div>
+            <div style="position:relative;width:72px;height:72px">
+              <svg width="72" height="72" style="transform:rotate(-90deg)">
+                <circle cx="36" cy="36" r="30" fill="none" stroke="#f1f5f9" stroke-width="6"/>
+                <circle cx="36" cy="36" r="30" fill="none" stroke="#6366f1" stroke-width="6" stroke-linecap="round"
+                  stroke-dasharray="188.5" stroke-dashoffset="66" style="transition:stroke-dashoffset 1s ease"/>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <span style="font-size:16px;font-weight:800;color:var(--slate-900)">65</span>
+                <span style="font-size:8px;color:var(--slate-400)">/100</span>
+              </div>
+            </div>
+            <div style="font-size:10px;font-weight:600;color:var(--slate-600)">In Progress</div>
+          </div>
+          <!-- Progress -->
+          <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div class="label">Progress</div>
+            <div class="row gap8"><div style="width:14px;height:14px;border-radius:50%;background:#d1fae5;display:flex;align-items:center;justify-content:center;font-size:8px">✓</div><div class="body flex1">Tasks completed</div><div style="font-size:11px;font-weight:700;color:#059669">8 of 14</div></div>
+            <div class="row gap8"><div style="width:14px;height:14px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:8px">…</div><div class="body flex1">In progress</div><div style="font-size:11px;font-weight:700;color:#2563eb">4 tasks</div></div>
+            <div class="row gap8"><div style="width:14px;height:14px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:8px">!</div><div class="body flex1">Overdue</div><div style="font-size:11px;font-weight:700;color:#ef4444">2 tasks</div></div>
+            <div class="row gap8"><div style="width:14px;height:14px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:8px">💼</div><div class="body flex1">Active applications</div><div style="font-size:11px;font-weight:700;color:var(--indigo)">5 jobs</div></div>
+          </div>
+          <!-- Documents -->
+          <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px">
+            <div class="label">Documents</div>
+            <div class="row" style="justify-content:space-between"><span class="body">Passport</span><span class="tag" style="background:#d1fae5;color:#059669">Ready</span></div>
+            <div class="row" style="justify-content:space-between"><span class="body">I-20</span><span class="tag" style="background:#d1fae5;color:#059669">Ready</span></div>
+            <div class="row" style="justify-content:space-between"><span class="body">OPT Application</span><span class="tag" style="background:#fef3c7;color:#d97706">Pending</span></div>
+            <div class="row" style="justify-content:space-between"><span class="body">Resume</span><span class="tag" style="background:#d1fae5;color:#059669">Ready</span></div>
+            <div class="row" style="justify-content:space-between"><span class="body">Bank Statement</span><span class="tag" style="background:#fee2e2;color:#ef4444">Missing</span></div>
+          </div>
+        </div>
+        <!-- Category bars -->
+        <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div class="label">Progress by Category</div>
+          <div class="grid2" style="gap:8px 20px">
+            <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">Visa / Immigration</span><span class="body">3/4</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:75%;background:#6366f1"></div></div></div>
+            <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">Job Search</span><span class="body">2/5</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:40%;background:#3b82f6"></div></div></div>
+            <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">Housing</span><span class="body">1/3</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:33%;background:#f59e0b"></div></div></div>
+            <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">Financial</span><span class="body">2/2</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:100%;background:#10b981"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 2: Job Tracker ─── -->
+  <div class="slide" id="s2">
+    <div class="chrome">
+      <div class="sidebar">
+        <div class="sb-logo"><div class="sb-logo-icon">LB</div><div><div class="sb-logo-text">LaunchBridge</div><div class="sb-logo-sub">Post-Grad Transition</div></div></div>
+        <div class="sb-nav">
+          <div class="sb-item"><div class="dot"></div> Dashboard</div>
+          <div class="sb-item"><div class="dot"></div> Calendar</div>
+          <div class="sb-item"><div class="dot"></div> Timeline</div>
+          <div class="sb-item"><div class="dot"></div> Documents</div>
+          <div class="sb-item active"><div class="dot"></div> Job Tracker <span class="sb-badge">3</span></div>
+          <div class="sb-item"><div class="dot"></div> Visa & OPT</div>
+          <div class="sb-item"><div class="dot"></div> Budget</div>
+          <div class="sb-item"><div class="dot"></div> Housing</div>
+          <div class="sb-item"><div class="dot"></div> Network</div>
+          <div class="sb-item"><div class="dot"></div> Notes</div>
+        </div>
+        <div class="sb-profile"><div class="sb-avatar">FB</div><div><div class="sb-name">Firas</div><div class="sb-uni">SCAD</div></div></div>
+      </div>
+      <div class="main" style="gap:12px">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div><div class="h1" style="font-size:17px">Job Tracker</div><div class="body" style="margin-top:2px">Track applications & interview rounds</div></div>
+          <div style="background:var(--indigo);color:white;font-size:11px;font-weight:600;padding:7px 14px;border-radius:8px">+ Add job</div>
+        </div>
+        <!-- Status tabs -->
+        <div class="row gap8" style="background:var(--slate-100);border-radius:10px;padding:3px">
+          <div style="padding:5px 12px;border-radius:8px;background:white;font-size:11px;font-weight:600;color:var(--slate-900);box-shadow:0 1px 3px rgba(0,0,0,0.08)">All (7)</div>
+          <div style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:500;color:var(--slate-500)">Applied (3)</div>
+          <div style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:500;color:var(--slate-500)">Interviewing (2)</div>
+          <div style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:500;color:var(--slate-500)">Follow-up (3)</div>
+        </div>
+        <!-- Table -->
+        <div class="card" style="overflow:hidden;flex:1">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead>
+              <tr style="background:var(--slate-50);border-bottom:1px solid var(--slate-100)">
+                <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--slate-400);text-transform:uppercase">Company / Role</th>
+                <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--slate-400);text-transform:uppercase">Status</th>
+                <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--slate-400);text-transform:uppercase">Next Action</th>
+                <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--slate-400);text-transform:uppercase">Applied</th>
+                <th style="padding:10px 14px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--slate-100)">
+                <td style="padding:10px 14px"><div style="font-weight:600;color:var(--slate-900)">Google</div><div style="color:var(--slate-400);margin-top:2px">UX Designer</div></td>
+                <td style="padding:10px 14px"><span class="tag" style="background:#dbeafe;color:#1d4ed8">Interviewing</span></td>
+                <td style="padding:10px 14px;color:var(--slate-600)">Prepare for round 3</td>
+                <td style="padding:10px 14px;color:var(--slate-400)">May 1</td>
+                <td style="padding:10px 14px"><span style="font-size:10px;background:var(--indigo-light);color:var(--indigo);padding:2px 6px;border-radius:4px;font-weight:600">2 rounds ▼</span></td>
+              </tr>
+              <!-- Expanded interview panel -->
+              <tr style="background:#fafbff;border-bottom:1px solid var(--slate-100)">
+                <td colspan="5" style="padding:10px 14px 14px">
+                  <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--slate-400);letter-spacing:.06em;margin-bottom:8px">Interview Rounds</div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <div style="background:white;border:1px solid var(--slate-100);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px">
+                      <div style="width:22px;height:22px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--indigo);flex-shrink:0">1</div>
+                      <div class="flex1"><div style="font-size:11px;font-weight:600;color:var(--slate-800)">Phone Screen<span style="color:var(--slate-400);margin-left:8px;font-weight:400">May 14</span></div><div style="font-size:10px;color:var(--slate-500);margin-top:2px">Good rapport with recruiter. Focus on portfolio next.</div></div>
+                      <span class="tag" style="background:#d1fae5;color:#059669">Passed</span>
+                    </div>
+                    <div style="background:white;border:1px solid var(--slate-100);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px">
+                      <div style="width:22px;height:22px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--indigo);flex-shrink:0">2</div>
+                      <div class="flex1"><div style="font-size:11px;font-weight:600;color:var(--slate-800)">Video Interview<span style="color:var(--slate-400);margin-left:8px;font-weight:400">May 28</span></div><div style="font-size:10px;color:var(--slate-500);margin-top:2px">Prepare design case study</div></div>
+                      <span class="tag" style="background:var(--slate-100);color:var(--slate-500)">Pending</span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--slate-100)">
+                <td style="padding:10px 14px"><div style="font-weight:600;color:var(--slate-900)">Airbnb</div><div style="color:var(--slate-400);margin-top:2px">Product Designer</div></td>
+                <td style="padding:10px 14px"><span class="tag" style="background:#fef3c7;color:#b45309">Follow-up</span></td>
+                <td style="padding:10px 14px;color:var(--slate-600)">Send thank-you note</td>
+                <td style="padding:10px 14px;color:var(--slate-400)">Apr 28</td>
+                <td style="padding:10px 14px"><span style="font-size:18px;color:var(--slate-300)">▼</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--slate-100)">
+                <td style="padding:10px 14px"><div style="font-weight:600;color:var(--slate-900)">Figma</div><div style="color:var(--slate-400);margin-top:2px">UX Researcher</div></td>
+                <td style="padding:10px 14px"><span class="tag" style="background:#e0e7ff;color:#4338ca">Applied</span></td>
+                <td style="padding:10px 14px;color:var(--slate-600)">Awaiting response</td>
+                <td style="padding:10px 14px;color:var(--slate-400)">May 10</td>
+                <td style="padding:10px 14px"><span style="font-size:18px;color:var(--slate-300)">▼</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 3: Visa & OPT ─── -->
+  <div class="slide" id="s3">
+    <div class="chrome">
+      <div class="sidebar">
+        <div class="sb-logo"><div class="sb-logo-icon">LB</div><div><div class="sb-logo-text">LaunchBridge</div><div class="sb-logo-sub">Post-Grad Transition</div></div></div>
+        <div class="sb-nav">
+          <div class="sb-item"><div class="dot"></div> Dashboard</div>
+          <div class="sb-item"><div class="dot"></div> Calendar</div>
+          <div class="sb-item"><div class="dot"></div> Timeline</div>
+          <div class="sb-item"><div class="dot"></div> Documents</div>
+          <div class="sb-item"><div class="dot"></div> Job Tracker</div>
+          <div class="sb-item active"><div class="dot"></div> Visa & OPT</div>
+          <div class="sb-item"><div class="dot"></div> Budget</div>
+          <div class="sb-item"><div class="dot"></div> Housing</div>
+          <div class="sb-item"><div class="dot"></div> Network</div>
+          <div class="sb-item"><div class="dot"></div> Notes</div>
+        </div>
+        <div class="sb-profile"><div class="sb-avatar">FB</div><div><div class="sb-name">Firas</div><div class="sb-uni">SCAD</div></div></div>
+      </div>
+      <div class="main" style="gap:12px">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div><div class="h1" style="font-size:17px">Visa & OPT Tracker</div><div class="body" style="margin-top:2px">Track every step of your OPT application</div></div>
+          <div style="background:var(--indigo);color:white;font-size:11px;font-weight:600;padding:7px 14px;border-radius:8px">+ Add step</div>
+        </div>
+        <!-- Countdown cards -->
+        <div class="grid3" style="gap:10px">
+          <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px;text-align:center">
+            <div style="font-size:28px;font-weight:900;color:#ea580c">24</div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#ea580c;letter-spacing:.06em;margin-top:2px">days</div>
+            <div style="font-size:11px;font-weight:600;color:#9a3412;margin-top:4px">OPT Apply By</div>
+            <div style="font-size:9px;color:#c2410c;margin-top:2px">Aug 17, 2026</div>
+          </div>
+          <div class="card" style="padding:14px;text-align:center">
+            <div style="font-size:28px;font-weight:900;color:var(--indigo)">114</div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--slate-400);letter-spacing:.06em;margin-top:2px">days</div>
+            <div style="font-size:11px;font-weight:600;color:var(--slate-700);margin-top:4px">Until Graduation</div>
+            <div style="font-size:9px;color:var(--slate-400);margin-top:2px">Nov 15, 2026</div>
+          </div>
+          <div class="card" style="padding:14px;text-align:center">
+            <div style="font-size:28px;font-weight:900;color:var(--indigo)">174</div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--slate-400);letter-spacing:.06em;margin-top:2px">days</div>
+            <div style="font-size:11px;font-weight:600;color:var(--slate-700);margin-top:4px">Grace Period Ends</div>
+            <div style="font-size:9px;color:var(--slate-400);margin-top:2px">Jan 14, 2027</div>
+          </div>
+        </div>
+        <!-- Progress -->
+        <div class="card" style="padding:14px">
+          <div class="row" style="justify-content:space-between;margin-bottom:8px">
+            <div class="label">Application Progress</div>
+            <div style="font-size:11px;font-weight:700;color:var(--slate-900)">3 of 6 steps complete</div>
+          </div>
+          <div class="pbar-bg"><div class="pbar-fill" style="width:50%;background:var(--indigo)"></div></div>
+          <div class="body" style="margin-top:6px">50% complete</div>
+        </div>
+        <!-- Key rules -->
+        <div class="grid3" style="gap:10px">
+          <div style="background:#f5f3ff;border-radius:10px;padding:12px"><div style="font-size:10px;font-weight:700;color:#6d28d9;margin-bottom:4px">90-Day Window</div><div style="font-size:9px;color:#7c3aed;line-height:1.5">Apply no more than 90 days before your program end date</div></div>
+          <div style="background:#eff6ff;border-radius:10px;padding:12px"><div style="font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:4px">60-Day Grace Period</div><div style="font-size:9px;color:#2563eb;line-height:1.5">60 days after graduation to find employment or change status</div></div>
+          <div style="background:#fffbeb;border-radius:10px;padding:12px"><div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:4px">EAD Required</div><div style="font-size:9px;color:#d97706;line-height:1.5">Cannot legally begin working before receiving your EAD card</div></div>
+        </div>
+        <!-- Steps -->
+        <div class="card" style="padding:14px;flex:1">
+          <div class="label" style="margin-bottom:10px">OPT Steps</div>
+          <div style="display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div style="width:26px;height:26px;border-radius:50%;background:#d1fae5;display:flex;align-items:center;justify-content:center;font-size:10px">✓</div><div style="width:1px;height:16px;background:var(--slate-100);margin:2px 0"></div></div>
+              <div style="flex:1;padding-bottom:10px"><div style="font-size:11px;font-weight:500;color:var(--slate-400);text-decoration:line-through">Meet with ISSO advisor</div><div style="font-size:9px;color:var(--slate-300);margin-top:2px">May 5, 2026</div></div>
+              <span class="tag" style="background:#d1fae5;color:#059669;font-size:9px">Done</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div style="width:26px;height:26px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:10px;color:#3b82f6">⏱</div><div style="width:1px;height:16px;background:var(--slate-100);margin:2px 0"></div></div>
+              <div style="flex:1;padding-bottom:10px"><div style="font-size:11px;font-weight:500;color:var(--slate-900)">Submit OPT application to ISSO</div><div style="font-size:9px;color:var(--slate-400);margin-top:2px">Aug 17, 2026</div></div>
+              <span class="tag" style="background:#dbeafe;color:#1d4ed8;font-size:9px">In Progress</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <div style="flex-shrink:0"><div style="width:26px;height:26px;border-radius:50%;background:var(--slate-100);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--slate-300)">○</div></div>
+              <div style="flex:1"><div style="font-size:11px;font-weight:500;color:var(--slate-900)">USCIS filing confirmation</div></div>
+              <span class="tag" style="background:var(--slate-100);color:var(--slate-400);font-size:9px">Pending</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 4: Budget ─── -->
+  <div class="slide" id="s4">
+    <div class="chrome">
+      <div class="sidebar">
+        <div class="sb-logo"><div class="sb-logo-icon">LB</div><div><div class="sb-logo-text">LaunchBridge</div><div class="sb-logo-sub">Post-Grad Transition</div></div></div>
+        <div class="sb-nav">
+          <div class="sb-item"><div class="dot"></div> Dashboard</div>
+          <div class="sb-item"><div class="dot"></div> Calendar</div>
+          <div class="sb-item"><div class="dot"></div> Timeline</div>
+          <div class="sb-item"><div class="dot"></div> Documents</div>
+          <div class="sb-item"><div class="dot"></div> Job Tracker</div>
+          <div class="sb-item"><div class="dot"></div> Visa & OPT</div>
+          <div class="sb-item active"><div class="dot"></div> Budget</div>
+          <div class="sb-item"><div class="dot"></div> Housing</div>
+          <div class="sb-item"><div class="dot"></div> Network</div>
+          <div class="sb-item"><div class="dot"></div> Notes</div>
+        </div>
+        <div class="sb-profile"><div class="sb-avatar">FB</div><div><div class="sb-name">Firas</div><div class="sb-uni">SCAD</div></div></div>
+      </div>
+      <div class="main" style="gap:12px">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div><div class="h1" style="font-size:17px">Budget Planner</div><div class="body" style="margin-top:2px">Manage your post-grad finances</div></div>
+          <div style="background:var(--indigo);color:white;font-size:11px;font-weight:600;padding:7px 14px;border-radius:8px">+ Add item</div>
+        </div>
+        <!-- Summary cards -->
+        <div class="grid3" style="gap:10px">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#16a34a;letter-spacing:.06em">Monthly Income</div>
+            <div style="font-size:24px;font-weight:900;color:#15803d;margin-top:4px">$3,200</div>
+          </div>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#dc2626;letter-spacing:.06em">Monthly Expenses</div>
+            <div style="font-size:24px;font-weight:900;color:#b91c1c;margin-top:4px">$2,450</div>
+          </div>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#1d4ed8;letter-spacing:.06em">Net Savings</div>
+            <div style="font-size:24px;font-weight:900;color:#1e40af;margin-top:4px">$750</div>
+          </div>
+        </div>
+        <!-- Breakdown -->
+        <div class="grid2" style="flex:1;gap:12px;align-items:start">
+          <div class="card" style="padding:14px">
+            <div class="label" style="margin-bottom:10px">Expense Breakdown</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">Rent</span><span style="font-size:11px;font-weight:700;color:var(--slate-900)">$1,200</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:75%;background:#ef4444"></div></div></div>
+              <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">Groceries</span><span style="font-size:11px;font-weight:700;color:var(--slate-900)">$320</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:40%;background:#f59e0b"></div></div></div>
+              <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">Transport</span><span style="font-size:11px;font-weight:700;color:var(--slate-900)">$180</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:22%;background:#6366f1"></div></div></div>
+              <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">OPT Fees</span><span style="font-size:11px;font-weight:700;color:var(--slate-900)">$410</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:30%;background:#8b5cf6"></div></div></div>
+              <div><div class="row" style="justify-content:space-between;margin-bottom:4px"><span class="body">Other</span><span style="font-size:11px;font-weight:700;color:var(--slate-900)">$340</span></div><div class="pbar-bg"><div class="pbar-fill" style="width:25%;background:#94a3b8"></div></div></div>
+            </div>
+          </div>
+          <div class="card" style="padding:14px">
+            <div class="label" style="margin-bottom:10px">All Items</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--slate-100)"><div><div style="font-size:11px;font-weight:500;color:var(--slate-900)">Part-time job</div><div style="font-size:9px;color:var(--slate-400)">Income · Monthly</div></div><span style="font-size:12px;font-weight:700;color:#059669">+$3,200</span></div>
+              <div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--slate-100)"><div><div style="font-size:11px;font-weight:500;color:var(--slate-900)">Apartment rent</div><div style="font-size:9px;color:var(--slate-400)">Housing · Monthly</div></div><span style="font-size:12px;font-weight:700;color:#ef4444">-$1,200</span></div>
+              <div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--slate-100)"><div><div style="font-size:11px;font-weight:500;color:var(--slate-900)">USCIS OPT fee</div><div style="font-size:9px;color:var(--slate-400)">Visa · One-time</div></div><span style="font-size:12px;font-weight:700;color:#ef4444">-$410</span></div>
+              <div class="row" style="justify-content:space-between;padding:6px 0"><div><div style="font-size:11px;font-weight:500;color:var(--slate-900)">Groceries</div><div style="font-size:9px;color:var(--slate-400)">Food · Monthly</div></div><span style="font-size:12px;font-weight:700;color:#ef4444">-$320</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 5: Calendar ─── -->
+  <div class="slide" id="s5">
+    <div class="chrome">
+      <div class="sidebar">
+        <div class="sb-logo"><div class="sb-logo-icon">LB</div><div><div class="sb-logo-text">LaunchBridge</div><div class="sb-logo-sub">Post-Grad Transition</div></div></div>
+        <div class="sb-nav">
+          <div class="sb-item"><div class="dot"></div> Dashboard</div>
+          <div class="sb-item active"><div class="dot"></div> Calendar</div>
+          <div class="sb-item"><div class="dot"></div> Timeline</div>
+          <div class="sb-item"><div class="dot"></div> Documents</div>
+          <div class="sb-item"><div class="dot"></div> Job Tracker</div>
+          <div class="sb-item"><div class="dot"></div> Visa & OPT</div>
+          <div class="sb-item"><div class="dot"></div> Budget</div>
+          <div class="sb-item"><div class="dot"></div> Housing</div>
+          <div class="sb-item"><div class="dot"></div> Network</div>
+          <div class="sb-item"><div class="dot"></div> Notes</div>
+        </div>
+        <div class="sb-profile"><div class="sb-avatar">FB</div><div><div class="sb-name">Firas</div><div class="sb-uni">SCAD</div></div></div>
+      </div>
+      <div class="main" style="gap:12px">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div><div class="h1" style="font-size:17px">May 2026</div><div class="body" style="margin-top:2px">All upcoming events across your transition</div></div>
+          <div class="row gap8">
+            <div style="padding:5px 10px;border:1px solid var(--slate-200);border-radius:8px;font-size:11px;color:var(--slate-600)">‹</div>
+            <div style="padding:5px 10px;border:1px solid var(--slate-200);border-radius:8px;font-size:11px;color:var(--slate-600)">›</div>
+          </div>
+        </div>
+        <!-- Legend -->
+        <div class="row gap12">
+          <div class="row gap4"><div style="width:8px;height:8px;border-radius:50%;background:#6366f1"></div><span style="font-size:9px;color:var(--slate-500)">Tasks</span></div>
+          <div class="row gap4"><div style="width:8px;height:8px;border-radius:50%;background:#8b5cf6"></div><span style="font-size:9px;color:var(--slate-500)">OPT Steps</span></div>
+          <div class="row gap4"><div style="width:8px;height:8px;border-radius:50%;background:#f43f5e"></div><span style="font-size:9px;color:var(--slate-500)">Contacts</span></div>
+          <div class="row gap4"><div style="width:8px;height:8px;border-radius:50%;background:#3b82f6"></div><span style="font-size:9px;color:var(--slate-500)">Jobs</span></div>
+        </div>
+        <!-- Calendar grid -->
+        <div class="card" style="padding:14px;flex:1">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px">
+            <div style="text-align:center;font-size:9px;font-weight:600;color:var(--slate-400);padding:4px">SUN</div>
+            <div style="text-align:center;font-size:9px;font-weight:600;color:var(--slate-400);padding:4px">MON</div>
+            <div style="text-align:center;font-size:9px;font-weight:600;color:var(--slate-400);padding:4px">TUE</div>
+            <div style="text-align:center;font-size:9px;font-weight:600;color:var(--slate-400);padding:4px">WED</div>
+            <div style="text-align:center;font-size:9px;font-weight:600;color:var(--slate-400);padding:4px">THU</div>
+            <div style="text-align:center;font-size:9px;font-weight:600;color:var(--slate-400);padding:4px">FRI</div>
+            <div style="text-align:center;font-size:9px;font-weight:600;color:var(--slate-400);padding:4px">SAT</div>
+          </div>
+          <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 6: Network ─── -->
+  <div class="slide" id="s6">
+    <div class="chrome">
+      <div class="sidebar">
+        <div class="sb-logo"><div class="sb-logo-icon">LB</div><div><div class="sb-logo-text">LaunchBridge</div><div class="sb-logo-sub">Post-Grad Transition</div></div></div>
+        <div class="sb-nav">
+          <div class="sb-item"><div class="dot"></div> Dashboard</div>
+          <div class="sb-item"><div class="dot"></div> Calendar</div>
+          <div class="sb-item"><div class="dot"></div> Timeline</div>
+          <div class="sb-item"><div class="dot"></div> Documents</div>
+          <div class="sb-item"><div class="dot"></div> Job Tracker</div>
+          <div class="sb-item"><div class="dot"></div> Visa & OPT</div>
+          <div class="sb-item"><div class="dot"></div> Budget</div>
+          <div class="sb-item"><div class="dot"></div> Housing</div>
+          <div class="sb-item active"><div class="dot"></div> Network <span class="sb-badge">2</span></div>
+          <div class="sb-item"><div class="dot"></div> Notes</div>
+        </div>
+        <div class="sb-profile"><div class="sb-avatar">FB</div><div><div class="sb-name">Firas</div><div class="sb-uni">SCAD</div></div></div>
+      </div>
+      <div class="main" style="gap:12px">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div><div class="h1" style="font-size:17px">Network & Contacts</div><div class="body" style="margin-top:2px">Stay connected with your professional circle</div></div>
+          <div style="background:var(--indigo);color:white;font-size:11px;font-weight:600;padding:7px 14px;border-radius:8px">+ Add contact</div>
+        </div>
+        <!-- Stats -->
+        <div class="grid3" style="gap:10px">
+          <div class="card" style="padding:12px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--indigo)">12</div><div style="font-size:10px;color:var(--slate-500);margin-top:2px">Total contacts</div></div>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px;text-align:center"><div style="font-size:24px;font-weight:900;color:#dc2626">2</div><div style="font-size:10px;color:#b91c1c;margin-top:2px">Overdue follow-ups</div></div>
+          <div class="card" style="padding:12px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--emerald)">5</div><div style="font-size:10px;color:var(--slate-500);margin-top:2px">Follow-ups this week</div></div>
+        </div>
+        <!-- Contacts grid -->
+        <div class="grid2" style="flex:1;gap:10px;align-items:start">
+          <div class="card" style="padding:14px">
+            <div class="row gap8" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--indigo);flex-shrink:0">JS</div>
+              <div class="flex1"><div style="font-size:12px;font-weight:600;color:var(--slate-900)">Jamie Smith</div><div style="font-size:10px;color:var(--slate-400)">UX Lead · Google</div></div>
+            </div>
+            <div class="row" style="justify-content:space-between"><span class="tag" style="background:#d1fae5;color:#059669;font-size:9px">Mentor</span><span style="font-size:9px;color:#ef4444;font-weight:600">Follow up: May 20 ✕</span></div>
+          </div>
+          <div class="card" style="padding:14px">
+            <div class="row gap8" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:#fce7f3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#be185d;flex-shrink:0">AK</div>
+              <div class="flex1"><div style="font-size:12px;font-weight:600;color:var(--slate-900)">Aisha Khan</div><div style="font-size:10px;color:var(--slate-400)">Product Manager · Meta</div></div>
+            </div>
+            <div class="row" style="justify-content:space-between"><span class="tag" style="background:#dbeafe;color:#1d4ed8;font-size:9px">Referral</span><span style="font-size:9px;color:var(--slate-400)">Follow up: Jun 1</span></div>
+          </div>
+          <div class="card" style="padding:14px">
+            <div class="row gap8" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#d97706;flex-shrink:0">MR</div>
+              <div class="flex1"><div style="font-size:12px;font-weight:600;color:var(--slate-900)">Marcus Reed</div><div style="font-size:10px;color:var(--slate-400)">Recruiter · Figma</div></div>
+            </div>
+            <div class="row" style="justify-content:space-between"><span class="tag" style="background:#fef3c7;color:#b45309;font-size:9px">Recruiter</span><span style="font-size:9px;color:var(--slate-400)">Follow up: May 30</span></div>
+          </div>
+          <div class="card" style="padding:14px">
+            <div class="row gap8" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#15803d;flex-shrink:0">LC</div>
+              <div class="flex1"><div style="font-size:12px;font-weight:600;color:var(--slate-900)">Lisa Chen</div><div style="font-size:10px;color:var(--slate-400)">Alumni · SCAD → Airbnb</div></div>
+            </div>
+            <div class="row" style="justify-content:space-between"><span class="tag" style="background:#f0fdf4;color:#15803d;font-size:9px">Alumni</span><span style="font-size:9px;color:#ef4444;font-weight:600">Follow up: May 22 ✕</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SLIDE 7: Outro ─── -->
+  <div class="slide" id="s7">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px">
+      <div style="width:56px;height:56px;background:var(--indigo);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:white;box-shadow:0 0 30px rgba(99,102,241,0.4)">LB</div>
+      <h2 style="font-size:28px;font-weight:900;color:white;letter-spacing:-0.02em;text-align:center">One app.<br/>Every step of the transition.</h2>
+      <p style="font-size:13px;color:rgba(255,255,255,0.45);text-align:center;max-width:320px;line-height:1.7">Dashboard · Jobs · Visa · Budget · Housing · Network · Calendar</p>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <div style="padding:6px 16px;border:1px solid rgba(255,255,255,0.15);border-radius:999px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.5)">Built with React</div>
+        <div style="padding:6px 16px;border:1px solid rgba(255,255,255,0.15);border-radius:999px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.5)">Tailwind CSS</div>
+        <div style="padding:6px 16px;border:1px solid rgba(255,255,255,0.15);border-radius:999px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.5)">localStorage</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div id="progress-bar" style="width:0%"></div>
+
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <button id="play-btn" onclick="togglePlay()">⏸ Pause</button>
+  <div id="dots"></div>
+  <span id="timer-label"></span>
+</div>
+
+<script>
+  const SLIDES = ['s0','s1','s2','s3','s4','s5','s6','s7'];
+  const DURATIONS = [3500, 5000, 5500, 5000, 4800, 4800, 5000, 4000]; // ms per slide
+  let current = 0;
+  let playing = true;
+  let timer = null;
+  let progressStart = null;
+  let rafId = null;
+
+  // Build calendar for slide 5
+  const calGrid = document.getElementById('cal-grid');
+  const events = {5:'job',10:'task',14:'opt',18:'contact',20:'task',22:'job',26:'opt',28:'contact'};
+  const colors = {task:'#6366f1',opt:'#8b5cf6',contact:'#f43f5e',job:'#3b82f6'};
+  const today = 26;
+  for (let i = 0; i < 35; i++) {
+    const day = i - 4; // May 2026 starts on Friday (index 5), offset
+    const date = day + 1;
+    const valid = date >= 1 && date <= 31;
+    const isToday = date === today;
+    const ev = events[date];
+    const cell = document.createElement('div');
+    cell.style.cssText = `min-height:44px;border-radius:6px;padding:4px;background:${isToday?'#eef2ff':valid?'white':'transparent'};border:1px solid ${isToday?'#c7d2fe':valid?'#f1f5f9':'transparent'};display:flex;flex-direction:column;gap:2px`;
+    if (valid) {
+      const num = document.createElement('div');
+      num.style.cssText = `font-size:10px;font-weight:${isToday?'800':'500'};color:${isToday?'#4338ca':'#475569'};text-align:right`;
+      num.textContent = date;
+      cell.appendChild(num);
+      if (ev) {
+        const dot = document.createElement('div');
+        dot.style.cssText = `height:4px;border-radius:999px;background:${colors[ev]};margin-top:auto`;
+        cell.appendChild(dot);
+      }
+    }
+    calGrid.appendChild(cell);
+  }
+
+  // Build dot nav
+  const dotsEl = document.getElementById('dots');
+  SLIDES.forEach((_, i) => {
+    const b = document.createElement('button');
+    b.className = 'dot-btn' + (i === 0 ? ' active' : '');
+    b.onclick = () => goTo(i);
+    dotsEl.appendChild(b);
+  });
+
+  function goTo(idx) {
+    const prev = document.getElementById(SLIDES[current]);
+    prev.classList.remove('active');
+    prev.classList.add('out');
+    setTimeout(() => prev.classList.remove('out'), 700);
+
+    current = idx;
+    const next = document.getElementById(SLIDES[current]);
+    next.classList.add('active');
+
+    document.querySelectorAll('.dot-btn').forEach((b, i) => {
+      b.classList.toggle('active', i === current);
+    });
+
+    if (playing) startTimer();
+  }
+
+  function next() {
+    goTo((current + 1) % SLIDES.length);
+  }
+
+  function startTimer() {
+    clearTimeout(timer);
+    cancelAnimationFrame(rafId);
+    const dur = DURATIONS[current];
+    progressStart = performance.now();
+
+    const bar = document.getElementById('progress-bar');
+    function tick(now) {
+      const elapsed = now - progressStart;
+      const pct = Math.min((elapsed / dur) * 100, 100);
+      bar.style.width = pct + '%';
+      if (pct < 100) rafId = requestAnimationFrame(tick);
+    }
+    rafId = requestAnimationFrame(tick);
+    timer = setTimeout(next, dur);
+  }
+
+  function togglePlay() {
+    playing = !playing;
+    document.getElementById('play-btn').textContent = playing ? '⏸ Pause' : '▶ Play';
+    if (playing) {
+      startTimer();
+    } else {
+      clearTimeout(timer);
+      cancelAnimationFrame(rafId);
+      document.getElementById('progress-bar').style.width = '0%';
+    }
+  }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') goTo((current + 1) % SLIDES.length);
+    if (e.key === 'ArrowLeft') goTo((current - 1 + SLIDES.length) % SLIDES.length);
+    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  });
+
+  startTimer();
+</script>
+</body>
+</html>
