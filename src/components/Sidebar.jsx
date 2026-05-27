@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, ListChecks, FolderOpen, Briefcase, NotebookPen,
-  ShieldCheck, Wallet, Home, Users, Settings, CalendarDays,
+  ShieldCheck, Wallet, Home, Users, Settings, CalendarDays, LogOut,
 } from 'lucide-react';
 import Modal from './Modal';
 
@@ -25,7 +25,7 @@ const FIELDS_OF_STUDY = [
 const VISA_TYPES = ['F-1 Student', 'J-1 Exchange Visitor', 'Other'];
 const OPT_STATUSES = ['Planning to apply', 'Application in progress', 'EAD received'];
 
-function ProfileModal({ profile, onSave, onClose }) {
+function ProfileModal({ profile, onSave, onClose, onSignOut }) {
   const [form, setForm] = useState({ ...profile });
   const set = (field, val) => setForm((f) => ({ ...f, [field]: val }));
 
@@ -97,7 +97,7 @@ function ProfileModal({ profile, onSave, onClose }) {
   );
 }
 
-export default function Sidebar({ activePage, onNavigate, profile, onUpdateProfile, assistantOpen, onToggleAssistant, isOpen, onClose, badges = {} }) {
+export default function Sidebar({ activePage, onNavigate, profile, onUpdateProfile, onSignOut, assistantOpen, onToggleAssistant, isOpen, onClose, badges = {} }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   const firstName = profile?.name?.split(' ')[0] || 'You';
@@ -161,6 +161,15 @@ export default function Sidebar({ activePage, onNavigate, profile, onUpdateProfi
           </div>
           <Settings size={13} className="text-slate-300 flex-shrink-0" />
         </button>
+
+        {/* Sign out */}
+        <button
+          onClick={onSignOut}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors text-left"
+        >
+          <LogOut size={15} className="flex-shrink-0" />
+          <span className="text-xs font-medium">Sign out</span>
+        </button>
       </div>
 
       {showProfileModal && (
@@ -169,6 +178,7 @@ export default function Sidebar({ activePage, onNavigate, profile, onUpdateProfi
             profile={profile}
             onSave={onUpdateProfile}
             onClose={() => setShowProfileModal(false)}
+            onSignOut={onSignOut}
           />
         </Modal>
       )}

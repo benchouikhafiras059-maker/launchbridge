@@ -118,6 +118,7 @@ export default function App() {
         onNavigate={handleNavigate}
         profile={profile}
         onUpdateProfile={setProfile}
+        onSignOut={() => setProfile(null)}
         assistantOpen={assistantOpen}
         onToggleAssistant={() => setAssistantOpen((v) => !v)}
         isOpen={sidebarOpen}
