@@ -2,7 +2,8 @@
 
 A post-graduation transition dashboard built for Nico Fertonani — an international student from Argentina navigating visa deadlines, job applications, housing, and the full complexity of life after college, all in one place.
 
-**Live app:** [benchouikhafiras059-maker.github.io/launchbridge](https://benchouikhafiras059-maker.github.io/launchbridge/)
+**Live app:** [benchouikhafiras059-maker.github.io/launchbridge](https://benchouikhafiras059-maker.github.io/launchbridge/)  
+**Presentation:** [Case Study + Post-Mortem Slides](presentation.html) — open in browser, navigate with arrow keys
 
 ---
 
@@ -19,6 +20,7 @@ A post-graduation transition dashboard built for Nico Fertonani — an internati
 | [Records of Resistance](docs/records-of-resistance.md) | 3 documented moments of rejecting or significantly revising AI output |
 | [Five Questions Reflection](docs/five-questions.md) | Design cycle reflection — who, what, research, AI, and what I'd do differently |
 | [Post-Mortem](docs/post-mortem.md) | What worked, what failed, and what designing for a real person taught me |
+| [Case Study Presentation](presentation.html) | 13-slide HTML deck — full story from person → problem → build → test → reflection |
 
 ---
 
