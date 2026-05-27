@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LaunchBridge — Case Study & Post-Mortem</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --indigo-50:  #eef2ff;
+    --indigo-100: #e0e7ff;
+    --indigo-500: #6366f1;
+    --indigo-600: #4f46e5;
+    --indigo-700: #4338ca;
+    --slate-50:   #f8fafc;
+    --slate-100:  #f1f5f9;
+    --slate-200:  #e2e8f0;
+    --slate-400:  #94a3b8;
+    --slate-500:  #64748b;
+    --slate-600:  #475569;
+    --slate-700:  #334155;
+    --slate-800:  #1e293b;
+    --slate-900:  #0f172a;
+    --emerald-50: #ecfdf5;
+    --emerald-500:#10b981;
+    --emerald-600:#059669;
+    --amber-50:   #fffbeb;
+    --amber-500:  #f59e0b;
+    --amber-600:  #d97706;
+    --red-50:     #fef2f2;
+    --red-500:    #ef4444;
+    --red-600:    #dc2626;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--slate-900);
+    color: var(--slate-900);
+    overflow: hidden;
+  }
+
+  /* ── DECK ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 56px 72px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  /* ── BACKGROUNDS ── */
+  .bg-white   { background: #ffffff; }
+  .bg-slate   { background: var(--slate-50); }
+  .bg-indigo  { background: var(--indigo-600); color: #fff; }
+  .bg-dark    { background: var(--slate-900); color: #fff; }
+  .bg-gradient {
+    background: linear-gradient(135deg, var(--indigo-600) 0%, #7c3aed 100%);
+    color: #fff;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--indigo-600);
+    margin-bottom: 12px;
+  }
+  .eyebrow-white { color: rgba(255,255,255,.7); }
+
+  .title-xl {
+    font-size: 56px; font-weight: 900; line-height: 1.05;
+    letter-spacing: -.02em; color: var(--slate-900);
+  }
+  .title-lg {
+    font-size: 42px; font-weight: 800; line-height: 1.1;
+    letter-spacing: -.02em; color: var(--slate-900);
+  }
+  .title-md {
+    font-size: 32px; font-weight: 800; line-height: 1.2;
+    letter-spacing: -.01em; color: var(--slate-900);
+  }
+  .title-sm {
+    font-size: 22px; font-weight: 700; line-height: 1.3;
+    color: var(--slate-900);
+  }
+  .white { color: #fff !important; }
+  .indigo { color: var(--indigo-600) !important; }
+  .muted { color: var(--slate-500); }
+
+  .body-lg { font-size: 18px; line-height: 1.7; color: var(--slate-600); }
+  .body-md { font-size: 15px; line-height: 1.7; color: var(--slate-600); }
+  .body-sm { font-size: 13px; line-height: 1.6; color: var(--slate-500); }
+
+  /* ── LAYOUT ── */
+  .slide-inner { width: 100%; max-width: 1000px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+
+  /* ── CARD ── */
+  .card {
+    background: #fff; border: 1px solid var(--slate-200);
+    border-radius: 16px; padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  }
+  .card-sm { padding: 16px; border-radius: 12px; }
+  .card-indigo {
+    background: var(--indigo-50); border-color: var(--indigo-100);
+  }
+  .card-emerald { background: var(--emerald-50); border-color: #a7f3d0; }
+  .card-amber   { background: var(--amber-50);   border-color: #fde68a; }
+  .card-red     { background: var(--red-50);     border-color: #fecaca; }
+
+  /* ── QUOTE ── */
+  .quote-block {
+    border-left: 4px solid var(--indigo-500);
+    padding: 20px 24px; background: var(--indigo-50);
+    border-radius: 0 12px 12px 0;
+  }
+  .quote-text {
+    font-size: 20px; font-weight: 500; line-height: 1.5;
+    color: var(--slate-800); font-style: italic;
+  }
+  .quote-attr {
+    margin-top: 10px; font-size: 13px; color: var(--slate-500);
+    font-weight: 500;
+  }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; padding: 4px 10px;
+    border-radius: 99px; letter-spacing: .02em;
+  }
+  .badge-indigo { background: var(--indigo-50); color: var(--indigo-700); }
+  .badge-emerald { background: var(--emerald-50); color: var(--emerald-600); }
+  .badge-amber  { background: var(--amber-50);  color: var(--amber-600);  }
+  .badge-red    { background: var(--red-50);    color: var(--red-600);    }
+  .badge-slate  { background: var(--slate-100); color: var(--slate-600);  }
+
+  /* ── DOT ── */
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    display: inline-block;
+  }
+  .dot-indigo { background: var(--indigo-500); }
+  .dot-emerald { background: var(--emerald-500); }
+  .dot-amber { background: var(--amber-500); }
+  .dot-red { background: var(--red-500); }
+  .dot-slate { background: var(--slate-400); }
+
+  /* ── NUMBER CHIP ── */
+  .num-chip {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--indigo-600); color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── DIVIDER ── */
+  hr { border: none; border-top: 1px solid var(--slate-200); margin: 20px 0; }
+  hr.dark { border-color: rgba(255,255,255,.15); }
+
+  /* ── TABLE ── */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--slate-400); padding: 0 12px 10px;
+  }
+  .data-table td {
+    padding: 10px 12px; font-size: 13px; color: var(--slate-700);
+    border-top: 1px solid var(--slate-100);
+  }
+  .data-table tr:first-child td { border-top: none; }
+
+  /* ── PROGRESS BAR ── */
+  .prog-wrap { height: 6px; background: var(--slate-100); border-radius: 99px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 99px; }
+  .prog-indigo { background: var(--indigo-500); }
+  .prog-emerald { background: var(--emerald-500); }
+  .prog-amber { background: var(--amber-500); }
+
+  /* ── RING ── */
+  .ring-wrap { position: relative; width: 88px; height: 88px; }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .ring-score { font-size: 22px; font-weight: 800; color: var(--slate-900); }
+  .ring-label { font-size: 9px; color: var(--slate-400); margin-top: -2px; }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(15,23,42,.85); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.1);
+    padding: 10px 20px; border-radius: 99px;
+    z-index: 100;
+  }
+  .nav button {
+    background: none; border: none; cursor: pointer;
+    color: rgba(255,255,255,.6); font-size: 16px; padding: 4px 8px;
+    border-radius: 6px; transition: color .2s, background .2s;
+  }
+  .nav button:hover { color: #fff; background: rgba(255,255,255,.1); }
+  .nav-counter { font-size: 12px; color: rgba(255,255,255,.4); font-weight: 500; min-width: 52px; text-align: center; }
+
+  /* ── DOTS ── */
+  .slide-dots {
+    display: flex; gap: 5px; align-items: center;
+  }
+  .slide-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(255,255,255,.2); transition: background .2s, width .2s;
+    cursor: pointer;
+  }
+  .slide-dot.active { background: #fff; width: 16px; border-radius: 99px; }
+
+  /* ── SECTION LABEL ── */
+  .section-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,.15); color: rgba(255,255,255,.8);
+    padding: 5px 12px; border-radius: 99px; margin-bottom: 20px;
+  }
+  .section-tag-light {
+    background: var(--indigo-50); color: var(--indigo-600);
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 5px 12px; border-radius: 99px; margin-bottom: 20px;
+  }
+
+  /* ── ICON ── */
+  .icon-box {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .icon-box-indigo { background: var(--indigo-50); }
+  .icon-box-emerald { background: var(--emerald-50); }
+  .icon-box-amber   { background: var(--amber-50);   }
+  .icon-box-red     { background: var(--red-50);      }
+
+  /* ── STATUS ── */
+  .status-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--slate-100);
+  }
+  .status-row:last-child { border-bottom: none; }
+
+  /* ── RESISTANCE CARD ── */
+  .resist-card {
+    border: 1px solid var(--slate-200); border-radius: 14px; overflow: hidden;
+  }
+  .resist-before {
+    padding: 16px 20px; background: var(--red-50);
+    border-bottom: 1px solid var(--slate-200);
+  }
+  .resist-after { padding: 16px 20px; background: var(--emerald-50); }
+
+  /* ── UTIL ── */
+  .mt-4  { margin-top: 16px; }
+  .mt-6  { margin-top: 24px; }
+  .mt-8  { margin-top: 32px; }
+  .mb-2  { margin-bottom: 8px; }
+  .mb-3  { margin-bottom: 12px; }
+  .mb-4  { margin-bottom: 16px; }
+  .mb-6  { margin-bottom: 24px; }
+  .gap-3 { gap: 12px; }
+  .gap-4 { gap: 16px; }
+  .flex  { display: flex; }
+  .items-center { align-items: center; }
+  .items-start  { align-items: flex-start; }
+  .justify-between { justify-content: space-between; }
+  .flex-col { flex-direction: column; }
+  .flex-1   { flex: 1; }
+  .w-full   { width: 100%; }
+  .text-center { text-align: center; }
+  .font-semibold { font-weight: 600; }
+  .font-bold     { font-weight: 700; }
+
+  @media print {
+    .nav, .slide-dots { display: none !important; }
+    .slide { position: relative !important; opacity: 1 !important; pointer-events: all !important; page-break-after: always; }
+    html, body { overflow: visible; height: auto; }
+    .deck { height: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 1 · COVER
+  ───────────────────────────────────────── -->
+  <div class="slide bg-gradient active" id="s1">
+    <div class="slide-inner text-center">
+      <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.15);padding:8px 18px;border-radius:99px;margin-bottom:32px;">
+        <span style="font-size:20px;">🌎</span>
+        <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9);">SCAD AI 201 — Persons Required</span>
+      </div>
+      <div style="font-size:72px;font-weight:900;letter-spacing:-.03em;color:#fff;line-height:1;">LaunchBridge</div>
+      <div style="font-size:20px;color:rgba(255,255,255,.7);margin-top:12px;font-weight:400;">Post-Graduation Transition Dashboard for International Students</div>
+      <hr class="dark" style="max-width:200px;margin:32px auto;">
+      <div style="font-size:14px;color:rgba(255,255,255,.5);font-weight:500;">Case Study + Post-Mortem &nbsp;·&nbsp; Spring 2026</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 2 · THE PERSON
+  ───────────────────────────────────────── -->
+  <div class="slide bg-white" id="s2">
+    <div class="slide-inner">
+      <div class="section-tag-light">01 — The Person</div>
+      <div class="two-col" style="align-items:center;gap:56px;">
+        <div>
+          <div class="title-lg mb-4">Nico Fertonani</div>
+          <div class="body-lg mb-6">International student from Argentina. Finishing his degree. Weeks away from graduation, managing everything at once.</div>
+          <div class="stack" style="gap:12px;">
+            <div class="flex items-center gap-3">
+              <div class="icon-box icon-box-indigo">🇦🇷</div>
+              <div><div class="font-semibold" style="font-size:13px;color:var(--slate-800);">From Argentina</div><div class="body-sm">F-1 student visa</div></div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="icon-box icon-box-amber">🎓</div>
+              <div><div class="font-semibold" style="font-size:13px;color:var(--slate-800);">Graduating SCAD</div><div class="body-sm">Spring 2026 — OPT application window open</div></div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="icon-box icon-box-emerald">💼</div>
+              <div><div class="font-semibold" style="font-size:13px;color:var(--slate-800);">Actively job searching</div><div class="body-sm">UX / Product Design roles</div></div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="icon-box" style="background:var(--red-50);">🏠</div>
+              <div><div class="font-semibold" style="font-size:13px;color:var(--slate-800);">Housing unresolved</div><div class="body-sm">Can't sign lease without an offer letter</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="quote-block">
+            <div class="quote-text">"The hardest part is that everything is connected, but it's not in one place. I have to think about jobs, visa deadlines, documents, money, and where I'm going to live, but I don't always know what to prioritize first."</div>
+            <div class="quote-attr">— Nico Fertonani, interview</div>
+          </div>
+          <div class="card card-indigo mt-4">
+            <div class="body-sm" style="color:var(--indigo-700);font-weight:500;">This sentence is the design problem.<br>One place. Connected. Prioritized.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 3 · THE PROBLEM
+  ───────────────────────────────────────── -->
+  <div class="slide bg-slate" id="s3">
+    <div class="slide-inner">
+      <div class="section-tag-light">02 — The Problem</div>
+      <div class="title-lg mb-2">Fragmentation.</div>
+      <div class="body-lg mb-8" style="max-width:600px;">Not missing information. Not laziness. Five parallel systems, none of them talking to each other.</div>
+      <div class="three-col">
+        <div class="card">
+          <div style="font-size:28px;margin-bottom:10px;">📋</div>
+          <div class="font-bold mb-2" style="font-size:14px;color:var(--slate-800);">Visa / OPT</div>
+          <div class="body-sm">Deadlines that cascade — missing one invalidates everything after it. No tool surfaces them alongside everything else.</div>
+        </div>
+        <div class="card">
+          <div style="font-size:28px;margin-bottom:10px;">💼</div>
+          <div class="font-bold mb-2" style="font-size:14px;color:var(--slate-800);">Job Search</div>
+          <div class="body-sm">Applications tracked in memory or spreadsheets. OPT timeline affects which jobs to prioritize — but job boards don't know that.</div>
+        </div>
+        <div class="card">
+          <div style="font-size:28px;margin-bottom:10px;">🏠</div>
+          <div class="font-bold mb-2" style="font-size:14px;color:var(--slate-800);">Housing</div>
+          <div class="body-sm">Can't commit to housing without a job. Can't sign a lease without an offer letter. A circular dependency with no resolution point.</div>
+        </div>
+        <div class="card">
+          <div style="font-size:28px;margin-bottom:10px;">📄</div>
+          <div class="font-bold mb-2" style="font-size:14px;color:var(--slate-800);">Documents</div>
+          <div class="body-sm">I-20, passport, OPT application, EAD card — status tracked in mental memory. Low-grade background anxiety.</div>
+        </div>
+        <div class="card">
+          <div style="font-size:28px;margin-bottom:10px;">💰</div>
+          <div class="font-bold mb-2" style="font-size:14px;color:var(--slate-800);">Finances</div>
+          <div class="body-sm">Budget planning deferred because no salary known. But planning is needed before the offer arrives.</div>
+        </div>
+        <div class="card card-red" style="border-color:#fecaca;">
+          <div style="font-size:28px;margin-bottom:10px;">🧠</div>
+          <div class="font-bold mb-2" style="font-size:14px;color:var(--red-600);">Mental Overhead</div>
+          <div class="body-sm" style="color:var(--red-600);">Managing the fragmentation <em>itself</em> is a form of pressure that compounds everything else.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 4 · RESEARCH
+  ───────────────────────────────────────── -->
+  <div class="slide bg-white" id="s4">
+    <div class="slide-inner">
+      <div class="section-tag-light">03 — Research</div>
+      <div class="two-col">
+        <div>
+          <div class="title-md mb-4">What I heard.</div>
+          <div class="quote-block mb-4">
+            <div class="quote-text" style="font-size:17px;">"The hardest part is that everything is connected, but it's not in one place."</div>
+          </div>
+          <div class="body-md mb-6">Nico didn't need more information. He already knew the OPT deadline, the document checklist, the housing timeline. What he lacked was a unified view that showed him <strong>what to do first</strong>.</div>
+          <div class="card card-amber">
+            <div class="flex items-center gap-3">
+              <div style="font-size:22px;">🔄</div>
+              <div>
+                <div class="font-bold" style="font-size:13px;color:var(--amber-600);">What the research changed</div>
+                <div class="body-sm" style="color:var(--amber-600);margin-top:2px;">I planned to build an information tool. The interview replaced that plan with a prioritization and consolidation tool.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="font-semibold mb-3" style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--slate-400);">Observed Pain Points</div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Pain Point</th><th>Severity</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>No single view of all deadlines</td>
+                <td><span class="badge badge-red">High</span></td>
+              </tr>
+              <tr>
+                <td>OPT deadline not visible alongside job search</td>
+                <td><span class="badge badge-red">High</span></td>
+              </tr>
+              <tr>
+                <td>Which decisions depend on which other decisions</td>
+                <td><span class="badge badge-red">High</span></td>
+              </tr>
+              <tr>
+                <td>Document status tracked in memory</td>
+                <td><span class="badge badge-amber">Medium</span></td>
+              </tr>
+              <tr>
+                <td>Housing delayed by lack of job clarity</td>
+                <td><span class="badge badge-amber">Medium</span></td>
+              </tr>
+              <tr>
+                <td>Application follow-up tracked informally</td>
+                <td><span class="badge badge-amber">Medium</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 5 · DESIGN ARGUMENT
+  ───────────────────────────────────────── -->
+  <div class="slide bg-indigo" id="s5">
+    <div class="slide-inner text-center">
+      <div class="section-tag" style="margin:0 auto 24px;">04 — Design Argument</div>
+      <div style="font-size:48px;font-weight:900;line-height:1.1;color:#fff;letter-spacing:-.02em;margin-bottom:24px;">
+        The user does not need<br>more information.<br>They need <em style="font-style:italic;">clarity.</em>
+      </div>
+      <div style="max-width:640px;margin:0 auto;font-size:17px;color:rgba(255,255,255,.75);line-height:1.7;">
+        LaunchBridge does not give advice. It surfaces what already exists — the user's tasks, documents, applications — in a structure that makes priorities obvious and progress visible.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px;text-align:left;">
+        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:20px;">
+          <div style="font-size:24px;margin-bottom:8px;">📍</div>
+          <div style="font-weight:700;color:#fff;margin-bottom:6px;font-size:14px;">One place</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.5;">Everything in one tab, not twenty.</div>
+        </div>
+        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:20px;">
+          <div style="font-size:24px;margin-bottom:8px;">🔗</div>
+          <div style="font-weight:700;color:#fff;margin-bottom:6px;font-size:14px;">Connected</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.5;">Score pulls from tasks, documents, and jobs simultaneously.</div>
+        </div>
+        <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:20px;">
+          <div style="font-size:24px;margin-bottom:8px;">⬆️</div>
+          <div style="font-weight:700;color:#fff;margin-bottom:6px;font-size:14px;">Prioritized</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.5;">The app tells you what to do next. You don't have to ask.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 6 · WHAT WAS BUILT
+  ───────────────────────────────────────── -->
+  <div class="slide bg-slate" id="s6">
+    <div class="slide-inner">
+      <div class="section-tag-light">05 — Shipped Product</div>
+      <div class="two-col" style="gap:40px;align-items:start;">
+        <div>
+          <div class="title-md mb-2">What was built.</div>
+          <div class="body-md mb-6">A React dashboard with 9 sections, a computed readiness score, OPT countdown logic, and localStorage persistence. No backend. No accounts.</div>
+          <!-- Mini dashboard mockup -->
+          <div class="card" style="padding:16px;">
+            <div class="flex items-center justify-between mb-3">
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--slate-400);">Readiness Score</div>
+              <span class="badge badge-indigo">In Progress</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <!-- Ring -->
+              <div class="ring-wrap">
+                <svg width="88" height="88" viewBox="0 0 88 88">
+                  <circle cx="44" cy="44" r="36" fill="none" stroke="#f1f5f9" stroke-width="7"/>
+                  <circle cx="44" cy="44" r="36" fill="none" stroke="#6366f1" stroke-width="7"
+                    stroke-linecap="round"
+                    stroke-dasharray="226.2"
+                    stroke-dashoffset="100"
+                    style="transition:stroke-dashoffset .8s ease"/>
+                </svg>
+                <div class="ring-center">
+                  <div class="ring-score">62</div>
+                  <div class="ring-label">/ 100</div>
+                </div>
+              </div>
+              <div class="flex-1">
+                <div style="margin-bottom:8px;">
+                  <div class="flex justify-between mb-1"><span style="font-size:11px;color:var(--slate-600);">Tasks</span><span style="font-size:11px;color:var(--slate-500);">7/14</span></div>
+                  <div class="prog-wrap"><div class="prog-fill prog-indigo" style="width:50%"></div></div>
+                </div>
+                <div style="margin-bottom:8px;">
+                  <div class="flex justify-between mb-1"><span style="font-size:11px;color:var(--slate-600);">Documents</span><span style="font-size:11px;color:var(--slate-500);">3/8</span></div>
+                  <div class="prog-wrap"><div class="prog-fill prog-amber" style="width:38%"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1"><span style="font-size:11px;color:var(--slate-600);">Applications</span><span style="font-size:11px;color:var(--slate-500);">2 active</span></div>
+                  <div class="prog-wrap"><div class="prog-fill prog-emerald" style="width:65%"></div></div>
+                </div>
+              </div>
+            </div>
+            <!-- OPT Banner -->
+            <div style="margin-top:12px;background:var(--indigo-50);border:1px solid var(--indigo-100);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
+              <div style="font-size:22px;font-weight:900;color:var(--indigo-600);">18</div>
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--indigo-800);">days to apply for OPT</div>
+                <div style="font-size:10px;color:var(--indigo-500);">Apply at least 90 days before graduation</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="font-semibold mb-3" style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--slate-400);">9 Sections</div>
+          <div class="stack" style="gap:8px;">
+            <div class="card card-sm flex items-center gap-3">
+              <div class="dot dot-indigo"></div>
+              <div class="flex-1"><span class="font-semibold" style="font-size:13px;">Dashboard</span> <span class="body-sm">— score · OPT countdown · urgent tasks</span></div>
+            </div>
+            <div class="card card-sm flex items-center gap-3">
+              <div class="dot dot-indigo"></div>
+              <div class="flex-1"><span class="font-semibold" style="font-size:13px;">Timeline</span> <span class="body-sm">— all tasks sorted by deadline</span></div>
+            </div>
+            <div class="card card-sm flex items-center gap-3">
+              <div class="dot dot-amber"></div>
+              <div class="flex-1"><span class="font-semibold" style="font-size:13px;">Visa / OPT Tracker</span> <span class="body-sm">— 7-step USCIS checklist</span></div>
+            </div>
+            <div class="card card-sm flex items-center gap-3">
+              <div class="dot dot-emerald"></div>
+              <div class="flex-1"><span class="font-semibold" style="font-size:13px;">Job Tracker</span> <span class="body-sm">— pipeline + interview log</span></div>
+            </div>
+            <div class="card card-sm flex items-center gap-3">
+              <div class="dot dot-slate"></div>
+              <div class="flex-1"><span class="font-semibold" style="font-size:13px;">Documents</span> <span class="body-sm">— status per document</span></div>
+            </div>
+            <div class="card card-sm flex items-center gap-3">
+              <div class="dot dot-slate"></div>
+              <div class="flex-1"><span class="font-semibold" style="font-size:13px;">Budget · Housing · Contacts · Notes</span></div>
+            </div>
+          </div>
+          <div class="card card-indigo mt-4">
+            <div class="body-sm" style="color:var(--indigo-700);">
+              <strong>Stack:</strong> Vite + React + Tailwind CSS v3 + lucide-react + localStorage<br>
+              <strong>Live at:</strong> benchouikhafiras059-maker.github.io/launchbridge
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 7 · ARCHITECTURE
+  ───────────────────────────────────────── -->
+  <div class="slide bg-white" id="s7">
+    <div class="slide-inner">
+      <div class="section-tag-light">06 — System Architecture</div>
+      <div class="title-sm mb-6">How the system works.</div>
+      <!-- Architecture flow -->
+      <div style="display:grid;grid-template-columns:1fr 40px 1fr 40px 1fr 40px 1fr;align-items:center;gap:0;">
+        <!-- INPUT -->
+        <div class="card card-indigo" style="text-align:center;padding:20px 14px;">
+          <div style="font-size:22px;margin-bottom:6px;">👤</div>
+          <div class="font-bold" style="font-size:12px;color:var(--indigo-700);">INPUT</div>
+          <div class="body-sm" style="color:var(--indigo-600);margin-top:4px;">Nico marks tasks, updates documents, logs applications</div>
+        </div>
+        <div style="text-align:center;font-size:20px;color:var(--slate-300);">→</div>
+        <!-- STATE -->
+        <div class="card" style="text-align:center;padding:20px 14px;">
+          <div style="font-size:22px;margin-bottom:6px;">💾</div>
+          <div class="font-bold" style="font-size:12px;color:var(--slate-700);">STATE</div>
+          <div class="body-sm" style="margin-top:4px;">React useState + useLocalStorage<br><span style="color:var(--indigo-500);font-size:11px;">lb_ prefix · private · persistent</span></div>
+        </div>
+        <div style="text-align:center;font-size:20px;color:var(--slate-300);">→</div>
+        <!-- LOGIC -->
+        <div class="card card-amber" style="text-align:center;padding:20px 14px;">
+          <div style="font-size:22px;margin-bottom:6px;">⚙️</div>
+          <div class="font-bold" style="font-size:12px;color:var(--amber-700);">LOGIC</div>
+          <div class="body-sm" style="color:var(--amber-700);margin-top:4px;">Readiness score · Priority sort · OPT countdown</div>
+        </div>
+        <div style="text-align:center;font-size:20px;color:var(--slate-300);">→</div>
+        <!-- OUTPUT -->
+        <div class="card card-emerald" style="text-align:center;padding:20px 14px;">
+          <div style="font-size:22px;margin-bottom:6px;">📊</div>
+          <div class="font-bold" style="font-size:12px;color:var(--emerald-600);">OUTPUT</div>
+          <div class="body-sm" style="color:var(--emerald-600);margin-top:4px;">Dashboard shows score, countdown, urgent items instantly</div>
+        </div>
+      </div>
+      <div class="three-col mt-6">
+        <div class="card card-sm">
+          <div class="font-semibold mb-2" style="font-size:12px;color:var(--slate-600);">Readiness Score Formula</div>
+          <div style="font-size:13px;color:var(--slate-700);line-height:1.6;">
+            Tasks × <strong>0.5</strong><br>
+            Documents × <strong>0.3</strong><br>
+            Jobs × <strong>0.2</strong>
+          </div>
+          <div class="body-sm mt-2">Weighted for what Nico controls most</div>
+        </div>
+        <div class="card card-sm">
+          <div class="font-semibold mb-2" style="font-size:12px;color:var(--slate-600);">Priority Sort Order</div>
+          <div style="font-size:13px;color:var(--slate-700);line-height:1.7;">
+            1. Overdue<br>
+            2. Due ≤ 3 days<br>
+            3. High priority flag<br>
+            4. Nearest deadline
+          </div>
+        </div>
+        <div class="card card-sm">
+          <div class="font-semibold mb-2" style="font-size:12px;color:var(--slate-600);">OPT Countdown States</div>
+          <div style="font-size:13px;color:var(--slate-700);line-height:1.7;">
+            <span class="badge badge-indigo" style="margin-bottom:3px;display:inline-flex;">→ Deadline</span><br>
+            <span class="badge badge-red" style="margin-bottom:3px;display:inline-flex;">→ Urgent (≤14d)</span><br>
+            <span class="badge badge-amber" style="margin-bottom:3px;display:inline-flex;">→ Grace period</span><br>
+            <span class="badge badge-emerald" style="display:inline-flex;">→ EAD received</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 8 · USER TESTING
+  ───────────────────────────────────────── -->
+  <div class="slide bg-slate" id="s8">
+    <div class="slide-inner">
+      <div class="section-tag-light">07 — User Testing</div>
+      <div class="two-col">
+        <div>
+          <div class="title-md mb-4">What happened when Nico used it.</div>
+          <div class="stack" style="gap:10px;">
+            <div class="card card-sm flex items-start gap-3">
+              <div class="num-chip" style="margin-top:1px;">1</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Went straight to the Readiness Score</div>
+                <div class="body-sm">Understood the ring immediately. No explanation needed.</div>
+              </div>
+            </div>
+            <div class="card card-sm flex items-start gap-3">
+              <div class="num-chip" style="margin-top:1px;">2</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Focused on urgent deadlines panel</div>
+                <div class="body-sm">"This helps me see what needs attention now instead of trying to remember everything."</div>
+              </div>
+            </div>
+            <div class="card card-sm flex items-start gap-3">
+              <div class="num-chip" style="margin-top:1px;">3</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">OPT countdown stopped him</div>
+                <div class="body-sm">Strongest reaction. Made the deadline feel <em>real</em> in a way a checklist item doesn't.</div>
+              </div>
+            </div>
+            <div class="card card-sm flex items-start gap-3">
+              <div class="num-chip" style="background:var(--amber-500);margin-top:1px;">!</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Reached for what wasn't there</div>
+                <div class="body-sm">Expected job tracker + visa tracker to feel linked — because one decision affects the other.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card mb-4">
+            <div class="font-semibold mb-3" style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--slate-400);">Testing Insights</div>
+            <table class="data-table">
+              <thead><tr><th>What He Did</th><th>Implication</th></tr></thead>
+              <tbody>
+                <tr><td>Score first</td><td><span class="badge badge-emerald">Validated</span></td></tr>
+                <tr><td>Deadline panel = most useful</td><td><span class="badge badge-emerald">Validated</span></td></tr>
+                <tr><td>Skipped Budget Planner</td><td><span class="badge badge-amber">Revisit priority</span></td></tr>
+                <tr><td>Ignored category progress bars</td><td><span class="badge badge-amber">Secondary info</span></td></tr>
+                <tr><td>Job + visa link missing</td><td><span class="badge badge-red">Design gap</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="quote-block">
+            <div class="quote-text" style="font-size:16px;">"I'd actually use this. Especially this part."</div>
+            <div class="quote-attr">— pointing at the OPT countdown banner</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 9 · AI DIRECTION LOG
+  ───────────────────────────────────────── -->
+  <div class="slide bg-white" id="s9">
+    <div class="slide-inner">
+      <div class="section-tag-light">08 — AI Direction Log</div>
+      <div class="two-col" style="gap:40px;">
+        <div>
+          <div class="title-md mb-2">How I directed AI.</div>
+          <div class="body-md mb-6">7 logged sessions. AI was a capable builder — not a capable designer. The quality of the output was bounded by the clarity of the brief.</div>
+          <div class="card card-indigo">
+            <div class="font-bold mb-2" style="font-size:13px;color:var(--indigo-700);">The pattern that worked</div>
+            <div class="body-sm" style="color:var(--indigo-600);">
+              1. Define the design intent first (from Nico's needs)<br>
+              2. Give AI a specific, constrained brief<br>
+              3. Evaluate the output against the design argument<br>
+              4. Push back when it drifts to generic patterns
+            </div>
+          </div>
+        </div>
+        <div class="stack" style="gap:8px;">
+          <div class="card card-sm flex items-start gap-3">
+            <div class="dot dot-indigo" style="margin-top:5px;"></div>
+            <div><span class="font-semibold" style="font-size:13px;">App scaffold</span> <span class="body-sm">— Vite + React + localStorage hook. Kept entirely.</span></div>
+          </div>
+          <div class="card card-sm flex items-start gap-3">
+            <div class="dot dot-indigo" style="margin-top:5px;"></div>
+            <div><span class="font-semibold" style="font-size:13px;">SVG Readiness Ring</span> <span class="body-sm">— kept. Reweighted score to 50/30/20 myself.</span></div>
+          </div>
+          <div class="card card-sm flex items-start gap-3">
+            <div class="dot dot-amber" style="margin-top:5px;"></div>
+            <div><span class="font-semibold" style="font-size:13px;">OPT Countdown</span> <span class="body-sm">— kept state machine. Changed urgency threshold 7d→14d.</span></div>
+          </div>
+          <div class="card card-sm flex items-start gap-3">
+            <div class="dot dot-red" style="margin-top:5px;"></div>
+            <div><span class="font-semibold" style="font-size:13px;">Focus Assistant</span> <span class="body-sm">— AI produced chatbot. Rejected. Rebuilt as rule-based panel.</span></div>
+          </div>
+          <div class="card card-sm flex items-start gap-3">
+            <div class="dot dot-indigo" style="margin-top:5px;"></div>
+            <div><span class="font-semibold" style="font-size:13px;">Sample data</span> <span class="body-sm">— kept structure. Rewrote contacts for realism.</span></div>
+          </div>
+          <div class="card card-sm flex items-start gap-3">
+            <div class="dot dot-amber" style="margin-top:5px;"></div>
+            <div><span class="font-semibold" style="font-size:13px;">Onboarding</span> <span class="body-sm">— kept flow. Simplified OPT status labels to plain English.</span></div>
+          </div>
+          <div class="card card-sm flex items-start gap-3">
+            <div class="dot dot-emerald" style="margin-top:5px;"></div>
+            <div><span class="font-semibold" style="font-size:13px;">Mobile responsive</span> <span class="body-sm">— kept all. Changed overlay pattern for sidebar on mobile.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 10 · RECORDS OF RESISTANCE
+  ───────────────────────────────────────── -->
+  <div class="slide bg-slate" id="s10">
+    <div class="slide-inner">
+      <div class="section-tag-light">09 — Records of Resistance</div>
+      <div class="title-sm mb-6">3 moments I rejected AI output.</div>
+      <div class="three-col">
+        <!-- Resistance 1 -->
+        <div class="resist-card">
+          <div class="resist-before">
+            <div class="badge badge-red mb-2">❌ AI produced</div>
+            <div class="font-semibold" style="font-size:13px;color:var(--red-700);">A chatbot "Assistant"</div>
+            <div class="body-sm" style="color:var(--red-600);margin-top:4px;">Text input field, message history, typing indicator, suggested prompts.</div>
+          </div>
+          <div class="resist-after">
+            <div class="badge badge-emerald mb-2">✓ What I did instead</div>
+            <div class="font-semibold" style="font-size:13px;color:var(--emerald-700);">Rule-based priority panel</div>
+            <div class="body-sm" style="color:var(--emerald-600);margin-top:4px;">Nico doesn't need to ask the app what his priorities are. The app has the data. Show it.</div>
+          </div>
+        </div>
+        <!-- Resistance 2 -->
+        <div class="resist-card">
+          <div class="resist-before">
+            <div class="badge badge-red mb-2">❌ AI produced</div>
+            <div class="font-semibold" style="font-size:13px;color:var(--red-700);">Corporate blue palette</div>
+            <div class="body-sm" style="color:var(--red-600);margin-top:4px;">Deep navy, high-contrast blue buttons. Looked like a government portal.</div>
+          </div>
+          <div class="resist-after">
+            <div class="badge badge-emerald mb-2">✓ What I did instead</div>
+            <div class="font-semibold" style="font-size:13px;color:var(--emerald-700);">Indigo + slate system</div>
+            <div class="body-sm" style="color:var(--emerald-600);margin-top:4px;">Nico is already stressed. The tool should feel calming and personal, not institutional.</div>
+          </div>
+        </div>
+        <!-- Resistance 3 -->
+        <div class="resist-card">
+          <div class="resist-before">
+            <div class="badge badge-red mb-2">❌ AI produced</div>
+            <div class="font-semibold" style="font-size:13px;color:var(--red-700);">Equal-weight score (33/33/33)</div>
+            <div class="body-sm" style="color:var(--red-600);margin-top:4px;">Tasks, documents, and jobs weighted identically.</div>
+          </div>
+          <div class="resist-after">
+            <div class="badge badge-emerald mb-2">✓ What I did instead</div>
+            <div class="font-semibold" style="font-size:13px;color:var(--emerald-700);">Weighted 50 / 30 / 20</div>
+            <div class="body-sm" style="color:var(--emerald-600);margin-top:4px;">Job rejections he can't control shouldn't tank a score that reflects real progress.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 11 · POST-MORTEM: WHAT WORKED
+  ───────────────────────────────────────── -->
+  <div class="slide bg-white" id="s11">
+    <div class="slide-inner">
+      <div class="section-tag-light">10 — Post-Mortem</div>
+      <div class="two-col" style="gap:40px;">
+        <div>
+          <div class="title-md mb-2" style="color:var(--emerald-600);">What worked.</div>
+          <div class="stack" style="gap:10px;margin-top:16px;">
+            <div class="card card-emerald flex items-start gap-3">
+              <div class="icon-box icon-box-emerald" style="flex-shrink:0;">✓</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Starting with Nico, not the idea</div>
+                <div class="body-sm">The interview replaced my original plan. The pivot from "information tool" to "prioritization tool" came entirely from listening.</div>
+              </div>
+            </div>
+            <div class="card card-emerald flex items-start gap-3">
+              <div class="icon-box icon-box-emerald" style="flex-shrink:0;">✓</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Writing the Design Argument first</div>
+                <div class="body-sm">It gave me a fixed point to evaluate every AI output against. When the chatbot panel appeared, I knew it was wrong immediately.</div>
+              </div>
+            </div>
+            <div class="card card-emerald flex items-start gap-3">
+              <div class="icon-box icon-box-emerald" style="flex-shrink:0;">✓</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">The OPT countdown banner</div>
+                <div class="body-sm">Strongest testing reaction. Expressing a deadline as a concrete number of days made it real in a way a checklist item never could.</div>
+              </div>
+            </div>
+            <div class="card card-emerald flex items-start gap-3">
+              <div class="icon-box icon-box-emerald" style="flex-shrink:0;">✓</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Resisting the chatbot default</div>
+                <div class="body-sm">The rule-based panel is more useful precisely because it requires no user prompt. Nico's data is already there. Show it.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="title-md mb-2" style="color:var(--red-500);">What failed.</div>
+          <div class="stack" style="gap:10px;margin-top:16px;">
+            <div class="card card-red flex items-start gap-3">
+              <div class="icon-box icon-box-red" style="flex-shrink:0;">✗</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Cross-section connections</div>
+                <div class="body-sm">Nico expected job tracker + visa tracker to feel linked. They don't. The thesis says everything is connected — the UI doesn't show it.</div>
+              </div>
+            </div>
+            <div class="card card-red flex items-start gap-3">
+              <div class="icon-box icon-box-red" style="flex-shrink:0;">✗</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Built before testing assumptions</div>
+                <div class="body-sm">Budget Planner and Housing Finder were built before knowing if Nico would use them. Testing showed they're secondary. Earlier feedback would have redirected that effort.</div>
+              </div>
+            </div>
+            <div class="card card-red flex items-start gap-3">
+              <div class="icon-box icon-box-red" style="flex-shrink:0;">✗</div>
+              <div>
+                <div class="font-semibold" style="font-size:13px;">Generic secondary pages</div>
+                <div class="body-sm">Pages where I gave AI more latitude feel like a general productivity app. Brief quality translates directly to output quality.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 12 · FIVE QUESTIONS
+  ───────────────────────────────────────── -->
+  <div class="slide bg-slate" id="s12">
+    <div class="slide-inner">
+      <div class="section-tag-light">11 — Five Questions Reflection</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card card-sm">
+          <div class="badge badge-indigo mb-3">Q1 — Who?</div>
+          <div class="body-sm">Nico. The difference between designing for him and designing for "an international student" is the difference between solving a problem and solving a category of problem. When the person has a name, every decision has a test.</div>
+        </div>
+        <div class="card card-sm">
+          <div class="badge badge-indigo mb-3">Q2 — What problem?</div>
+          <div class="body-sm">Cognitive fragmentation under deadline pressure. Five parallel systems, no unified view, persistent background anxiety that something important might be slipping through.</div>
+        </div>
+        <div class="card card-sm">
+          <div class="badge badge-indigo mb-3">Q3 — How did research change the build?</div>
+          <div class="body-sm">Significantly. I planned an information tool. The interview revealed Nico doesn't need information — he needs a mirror. The research didn't confirm the plan. It replaced it.</div>
+        </div>
+        <div class="card card-sm">
+          <div class="badge badge-indigo mb-3">Q4 — Where did AI help / get in the way?</div>
+          <div class="body-sm">Helped: scaffolding, SVG ring, OPT state machine, sample data. Got in the way: chatbot interface, corporate palette, equal-weight score. AI knows what productivity apps look like. It doesn't know what Nico needs.</div>
+        </div>
+        <div class="card card-sm" style="grid-column:1/-1;">
+          <div class="badge badge-indigo mb-3">Q5 — What would you do differently?</div>
+          <div class="body-sm">Involve Nico during the build, not just before and after. Show early wireframes, catch the Budget Planner investment before committing to it. Be more deliberate about what I design versus what I let AI scaffold. The best pages were ones where I had a design intent before I gave AI the brief.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       SLIDE 13 · CLOSING
+  ───────────────────────────────────────── -->
+  <div class="slide bg-gradient" id="s13">
+    <div class="slide-inner text-center">
+      <div class="section-tag" style="margin:0 auto 32px;">The Lesson</div>
+      <div style="font-size:40px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-.02em;max-width:700px;margin:0 auto;">
+        The tool I built is better than the tool I planned to build, because Nico exists and I talked to him.
+      </div>
+      <div style="font-size:16px;color:rgba(255,255,255,.65);margin-top:20px;max-width:520px;margin:20px auto 0;">
+        Designing for a real person means accepting that your assumptions will be wrong. The research doesn't confirm the plan — it corrects it. That correction is not a problem in the process. It is the process.
+      </div>
+      <hr class="dark" style="max-width:120px;margin:36px auto;">
+      <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:6px;">Live App</div>
+          <div style="font-size:14px;color:#fff;font-weight:600;">benchouikhafiras059-maker.github.io/launchbridge</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:6px;">GitHub</div>
+          <div style="font-size:14px;color:#fff;font-weight:600;">github.com/benchouikhafiras059-maker/launchbridge</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:6px;">Designed for</div>
+          <div style="font-size:14px;color:#fff;font-weight:600;">Nico Fertonani 🇦🇷</div>
+        </div>
+      </div>
+      <div style="margin-top:40px;font-size:12px;color:rgba(255,255,255,.35);">SCAD AI 201 — Persons Required · Spring 2026</div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- ── NAVIGATION ── -->
+<nav class="nav">
+  <button id="btn-prev" title="Previous (←)">←</button>
+  <div class="slide-dots" id="dots"></div>
+  <span class="nav-counter" id="counter">1 / 13</span>
+  <button id="btn-next" title="Next (→)">→</button>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  const counter = document.getElementById('counter');
+  let cur = 0;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'slide-dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    document.querySelectorAll('.slide-dot')[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(slides.length - 1, n));
+    slides[cur].classList.add('active');
+    document.querySelectorAll('.slide-dot')[cur].classList.add('active');
+    counter.textContent = `${cur + 1} / ${slides.length}`;
+  }
+
+  document.getElementById('btn-prev').addEventListener('click', () => go(cur - 1));
+  document.getElementById('btn-next').addEventListener('click', () => go(cur + 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') { e.preventDefault(); go(cur - 1); }
+  });
+
+  // Touch swipe
+  let tx = 0;
+  document.addEventListener('touchstart', e => tx = e.touches[0].clientX);
+  document.addEventListener('touchend',   e => {
+    const dx = tx - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 50) go(dx > 0 ? cur + 1 : cur - 1);
+  });
+</script>
+</body>
+</html>
